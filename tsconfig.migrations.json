@@ -1,0 +1,14 @@
+{
+  "compilerOptions": {
+    "module": "ESNext",
+    "target": "ES2020",
+    "moduleResolution": "node",
+    "outDir": "./dist/migrations",
+    "rootDir": "./src/backend/migrations",
+    "esModuleInterop": true,
+    "strict": true,
+    "skipLibCheck": true
+  },
+  "include": ["src/backend/migrations/**/*.ts"],
+  "exclude": ["node_modules"]
+}
