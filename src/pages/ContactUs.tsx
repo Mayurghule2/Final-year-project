@@ -1,5 +1,5 @@
 // src/components/ContactUs.tsx
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -20,18 +20,44 @@ import ParticleBackground from "@/components/ParticleBackground";
 import { addDoc, collection, serverTimestamp } from "firebase/firestore";
 import { db } from "@/backend/FirebaseConfig";
 
+const deptCodeMap: Record<string, string> = {
+  "Computer Science & Engineering": "CS",
+  "Information Technology": "IT",
+  "Electronics & Telecommunication Engineering": "EN",
+  "Electrical Engineering": "EE",
+  "Mechanical Engineering": "ME",
+  "Civil Engineering": "CE",
+  "Instrumentation Engineering": "IN",
+};
+
 const ContactUs = () => {
   const [formData, setFormData] = useState({
     name: "",
     email: "",
     phone: "",
+    department: "",
+    departmentCode: "",
     userType: "",
     message: "",
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSubmitted, setIsSubmitted] = useState(false);
+  const [showDepartment, setShowDepartment] = useState(false);
   const { toast } = useToast();
 
+
+  useEffect(() => {
+    if (formData.userType.toLowerCase() === 'student') {
+      setShowDepartment(true);
+    } else {
+      setShowDepartment(false);
+      setFormData((prev) => ({
+        ...prev,
+        department: "",
+        departmentCode: "",
+      }));
+    }
+  }, [formData.userType]);
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
     setFormData(prev => ({ ...prev, [name]: value }));
@@ -52,6 +78,15 @@ const ContactUs = () => {
       });
       return;
     }
+    
+    if (formData.userType.toLowerCase() === "student" && (!formData.department || !formData.departmentCode)) {
+      toast({
+        title: "Missing Department Info",
+        description: "Please select your department",
+        variant: "destructive",
+      });
+      return;
+    }
 
     setIsSubmitting(true);
 
@@ -63,6 +98,8 @@ const ContactUs = () => {
         phone: formData.phone,
         userType: formData.userType,
         message: formData.message,
+        department: formData.department,
+        departmentCode: formData.departmentCode,
         status: "new", // You can track the status of the submission
         createdAt: serverTimestamp(), // Adds server-side timestamp
       });
@@ -83,6 +120,7 @@ const ContactUs = () => {
       setIsSubmitting(false);
     }
   };
+  
 
   const resetForm = () => {
     setFormData({
@@ -91,6 +129,8 @@ const ContactUs = () => {
       phone: "",
       userType: "",
       message: "",
+      department: "",
+      departmentCode: "",
     });
     setIsSubmitted(false);
   };
@@ -275,16 +315,16 @@ const ContactUs = () => {
                         transition={{ delay: 0.1 }}
                       >
                         <label htmlFor="userType" className="block text-sm font-medium text-gray-700 mb-2">
-                          I need help with <span className="text-red-500">*</span>
+                          I need help as <span className="text-red-500">*</span>
                         </label>
                         <Select onValueChange={handleSelectChange} value={formData.userType} required>
                           <SelectTrigger className="h-12 text-base">
-                            <SelectValue placeholder="Select request type" />
+                            <SelectValue placeholder="Select user type" />
                           </SelectTrigger>
                           <SelectContent>
-                            <SelectItem value="student">Student Account</SelectItem>
-                            <SelectItem value="recruiter">Recruiter Account</SelectItem>
-                            <SelectItem value="other">Other Inquiry</SelectItem>
+                            <SelectItem value="student">Student</SelectItem>
+                            <SelectItem value="recruiter">Recruiter</SelectItem>
+                            <SelectItem value="other">Others</SelectItem>
                           </SelectContent>
                         </Select>
                       </motion.div>
@@ -365,6 +405,41 @@ const ContactUs = () => {
                           />
                         </div>
                       </motion.div>
+
+                      {/* Department Dropdown Field */}
+                      {showDepartment && (
+                        <motion.div
+                          initial={{ opacity: 0, y: 10 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          transition={{ delay: 0.1 }}
+                        >
+                          <label htmlFor="department" className="block text-sm font-medium text-gray-700 mb-2">
+                            Department <span className="text-red-500">*</span>
+                          </label>
+                          <Select
+                            onValueChange={(selectedDepartment) => {
+                              setFormData((prev) => ({
+                                ...prev,
+                                department: selectedDepartment,
+                                departmentCode: deptCodeMap[selectedDepartment] || "",
+                              }));
+                            }}
+                            value={formData.department}
+                            required
+                          >
+                            <SelectTrigger className="h-12 text-base">
+                              <SelectValue placeholder="Select Department" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {Object.keys(deptCodeMap).map((dept) => (
+                                <SelectItem key={dept} value={dept}>
+                                  {dept}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </motion.div>
+                    )}
 
                       {/* Message Field */}
                       <motion.div
