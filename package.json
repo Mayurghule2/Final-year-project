@@ -55,7 +55,9 @@
     "input-otp": "^1.2.4",
     "lucide-react": "^0.462.0",
     "next-themes": "^0.3.0",
+    "papaparse": "^5.5.2",
     "react": "^18.3.1",
+    "react-csv": "^2.2.2",
     "react-day-picker": "^8.10.1",
     "react-dom": "^18.3.1",
     "react-hook-form": "^7.53.0",
@@ -72,6 +74,7 @@
     "tsparticles": "^3.8.1",
     "typewriter-effect": "^2.21.0",
     "vaul": "^0.9.3",
+    "xlsx": "^0.18.5",
     "zod": "^3.23.8"
   },
   "devDependencies": {

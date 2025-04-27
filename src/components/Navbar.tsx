@@ -12,6 +12,7 @@ const Navbar = () => {
   const location = useLocation();
   const navigate = useNavigate();
   const { currentUser, logout } = useAuth(); // Get auth state and logout function
+  console.log(currentUser);
 
   const navLinks = [
     { name: "Home", path: "/" },
@@ -19,6 +20,8 @@ const Navbar = () => {
     { name: "Features", path: "/#features" },
     { name: "FAQs", path: "/faqs" },
     { name: "Contact Us", path: "/contactus" },
+    { name: "My Profile", path: "/joblistingspage", hideElement: !(currentUser && currentUser?.role === "student") },
+    { name: "Admin Dashboard", path: "/dashboard", hideElement: !(currentUser && currentUser?.role === "admin") },
   ];
 
   useEffect(() => {
@@ -56,7 +59,7 @@ const Navbar = () => {
             <Link to="/" className="flex items-center">
               <img
                 src={logo}
-                alt="GCA Placements Logo"
+                alt="GCOEA Placements Logo"
                 className="h-10 w-auto mr-2 rounded-3xl"
               />
               <span className="text-2xl font-extrabold bg-gradient-to-r from-sky-400 via-slate-100 to-indigo-400 bg-clip-text text-transparent mb-1">
@@ -70,21 +73,24 @@ const Navbar = () => {
 
           {/* Desktop Navigation */}
           <div className="hidden md:flex md:items-center md:space-x-4">
-            <div className="flex space-x-4">
-              {navLinks.map((link) => (
-                <a
-                  key={link.name}
-                  href={link.path}
-                  className={`relative px-3 py-2 text-sm font-medium rounded-md transition-all ${
-                    location.pathname === link.path
-                      ? "text-white after:content-[''] after:absolute after:w-full after:h-0.5 after:bg-white after:left-0 after:bottom-0"
-                      : "text-white/90 hover:text-white hover:bg-white/10"
-                  }`}
-                >
-                  {link.name}
-                </a>
-              ))}
-            </div>
+          <div className="flex space-x-4">
+            {navLinks.map(
+              (link) =>
+                !link.hideElement && (  // Only render if link.hideElement is false
+                  <a
+                    key={link.name}
+                    href={link.path}
+                    className={`relative px-3 py-2 text-sm font-medium rounded-md transition-all ${
+                      location.pathname === link.path
+                        ? "text-white after:content-[''] after:absolute after:w-full after:h-0.5 after:bg-white after:left-0 after:bottom-0"
+                        : "text-white/90 hover:text-white hover:bg-white/10"
+                    }`}
+                  >
+                    {link.name}
+                  </a>
+                )
+            )}
+          </div>
             <div className="ml-4 flex items-center md:ml-6">
               {!currentUser ? (
                 <Link to="/login">
@@ -135,7 +141,9 @@ const Navbar = () => {
         } overflow-hidden bg-gradient-to-b from-indigo-600 to-purple-600`}
       >
         <div className="px-2 pt-2 pb-3 space-y-1 sm:px-3 shadow-lg">
-          {navLinks.map((link) => (
+        {navLinks.map((link) =>
+          // Only render the link if link.hideElement is not true
+          !link.hideElement && (
             <a
               key={link.name}
               href={link.path}
@@ -148,7 +156,9 @@ const Navbar = () => {
             >
               {link.name}
             </a>
-          ))}
+          )
+        )}
+
           <div className="pt-4 flex flex-col space-y-2">
             {!currentUser ? (
               <Link to="/login" onClick={() => setIsOpen(false)}>

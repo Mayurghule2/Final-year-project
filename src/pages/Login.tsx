@@ -23,6 +23,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Popover } from "@/components/ui/popover";
 import { TypeAnimation } from "react-type-animation";
 import AnimatedBackground from "@/components/animations/AnimatedBackground";
+import { db, doc, getDoc} from "@/backend/FirebaseConfig";
 
 const RoleIllustration = ({
   selectedRole,
@@ -466,14 +467,14 @@ const Login = () => {
                 <p className="text-gray-600 text-sm sm:text-base">
                   Don't have an account?{" "}
                   <button
-                    onClick={() => navigate("/signup")}
+                    onClick={() => navigate("/contactus")}
                     className="text-indigo-600 hover:text-indigo-800 font-medium transition-colors duration-200 hover:underline"
                   >
-                    Create account
+                    Request for account
                   </button>
                 </p>
                 <button
-                  onClick={() => navigate("/forgot-password")}
+                  onClick={() => navigate("/contactus")}
                   className="mt-2 sm:mt-4 text-indigo-600 hover:text-indigo-800 text-xs sm:text-sm font-medium transition-colors duration-200 hover:underline"
                 >
                   Forgot password?
