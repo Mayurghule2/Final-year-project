@@ -6,7 +6,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import {
   Form,
   FormControl,
@@ -77,6 +77,8 @@ import {
 } from "@/backend/FirebaseConfig";
 import { auth } from "@/backend/FirebaseConfig";
 import { onAuthStateChanged } from "firebase/auth";
+import { Label } from "recharts";
+import { useAuth } from "@/context/AuthContext";
 
 interface Application {
   id: string;
@@ -87,7 +89,8 @@ interface Application {
   studentName: string;
   studentEmail: string;
   studentPhone?: string;
-  status: "pending" | "approved" | "rejected";
+  status: string;
+  info: string | "";
   appliedAt: Date | null;
   updatedAt?: Date | null;
   internshipCount?: number;
@@ -134,6 +137,7 @@ interface Application {
       portfolio?: string;
     };
     resumeUrl?: string;
+    
   };
 }
 
@@ -169,6 +173,14 @@ const jobPostSchema = z.object({
     .max(100, "Percentage must be between 0 and 100"),
   maxBacklogs: z.number().min(0, "Backlogs cannot be negative"),
 });
+
+const statusOptions = [
+  "Approved", "Rejected", "In Process", "Cleared Test I", "Cleared Test II", 
+  "Cleared Test III", "Cleared Coding round I", "Cleared coding round II", 
+  "Cleared Interview I", "Cleared interview II", "Cleared interview III", 
+  "Cleared Group discussion round I", "Cleared Group discussion round II", 
+  "Cleared communication round", "Cleared HR interview", "Selected"
+];
 
 // Job Post Form Component
 const JobPostForm = () => {
@@ -677,10 +689,17 @@ const ApplicantDetails = ({
   application: Application;
   onStatusChange: (
     id: string,
-    status: "approved" | "rejected"
+    status: string,
+    info: string
   ) => Promise<void>;
 }) => {
+
   const [expanded, setExpanded] = useState(false);
+  const [showModal, setShowModal] = useState(false);
+  const [status, setStatus] = useState("");
+  const [info, setInfo] = useState("");
+  const {toast} = useToast();
+
   const profile = application.studentProfile || {};
   const appliedDate =
     application.appliedAt?.toLocaleDateString() || "Not available";
@@ -690,6 +709,42 @@ const ApplicantDetails = ({
     profile.dob instanceof Date
       ? profile.dob.toLocaleDateString()
       : profile.dob || "Not provided";
+
+      const handleUpdate = () => {
+        if (!application) return; // Safety check
+      
+        if (!status) {
+          toast({
+            title: "Missing Status",
+            description: "Please select a status before updating.",
+            variant: "destructive",
+          });
+          return;
+        }
+        // Pass the updated fields to onStatusChange
+        onStatusChange(application.id, status, info);
+      
+        // After updating, reset local states
+        setStatus("");
+        setInfo("");
+        setShowModal(false); // Close the modal
+      };
+
+  const handleCancel = () => {
+    setShowModal(false);
+  };
+
+  const onStatusChanged = (status: string) => {
+    setStatus(status);
+  };
+
+  const handleOpenModal = (application: Application) => {
+    // setSelectedApplication(application);
+    setStatus(application.status || ""); // set initial status
+    setInfo(application.info || ""); // set initial info
+    setShowModal(true); // open modal
+  };
+  
 
   return (
     <Card className="mb-6">
@@ -727,9 +782,9 @@ const ApplicantDetails = ({
           </div>
           <Badge
             variant={
-              application.status === "approved"
+              application.status.toLowerCase() === "approved"
                 ? "default"
-                : application.status === "rejected"
+                : application.status.toLocaleLowerCase() === "rejected"
                 ? "destructive"
                 : "secondary"
             }
@@ -919,7 +974,7 @@ const ApplicantDetails = ({
         ) : null}
 
         {/* Action Buttons */}
-        <div className="flex justify-end pt-4 border-t">
+        {/* <div className="flex justify-end pt-4 border-t">
           <div className="space-x-2">
             <Button
               variant="destructive"
@@ -937,7 +992,79 @@ const ApplicantDetails = ({
               Approve
             </Button>
           </div>
+        </div> */}
+        {/* Action Button */}
+        <div className="flex justify-end pt-4 border-t">
+          <div className="space-x-2">
+            <Button
+              variant="outline"
+              onClick={() => handleOpenModal(application)}
+            >
+              Action
+            </Button>
+          </div>
         </div>
+
+        {/* Modal for Action */}
+        {showModal && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+            <div className="bg-white rounded-lg p-6 max-w-md w-full">
+              <h3 className="text-lg font-bold mb-4">Application Action</h3>
+              <div className="space-y-4">
+                {/* Non-editable Fields */}
+                <p>
+                  <span className="text-gray-500">Name:</span>{" "}
+                  {profile.firstName}{" "}{profile.lastName} 
+                </p>
+                <p>
+                  <span className="text-gray-500">Email:</span>{" "}
+                  {profile.email}
+                </p>
+                <p>
+                  <span className="text-gray-500">Branch:</span>{" "}
+                  {profile.branch}
+                </p>
+
+                {/* Dropdown for Status */}
+                <div>
+                  <Label>Status</Label>
+                  <Select onValueChange={setStatus} value={status}>
+                    <SelectTrigger className="h-8">
+                      <SelectValue placeholder="Select status" />
+                    </SelectTrigger>
+                    <SelectContent className="text-xs sm:text-sm max-h-60 overflow-y-auto">
+                      {statusOptions.map((option, index) => (
+                        <SelectItem key={index} value={option}>
+                          {option}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div>
+                  <Label>Additional Details</Label>
+                  <Textarea
+                    value={info}
+                    onChange={(e) => setInfo(e.target.value)}
+                    placeholder="Provide additional details if necessary"
+                  />
+                </div>
+
+
+                {/* Action Buttons */}
+                <div className="flex justify-end space-x-2 mt-4">
+                  <Button variant="outline" onClick={handleCancel}>
+                    Cancel
+                  </Button>
+                  <Button onClick={handleUpdate}>
+                    Update
+                  </Button>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
       </CardContent>
     </Card>
   );
@@ -951,7 +1078,8 @@ const ApplicantsList = ({
   applications: Application[];
   onStatusChange: (
     id: string,
-    status: "approved" | "rejected"
+    status: string,
+    info: string
   ) => Promise<void>;
 }) => {
   return (
@@ -1130,6 +1258,14 @@ const RecruiterJobPostPage = () => {
   const [loading, setLoading] = useState(true);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const { toast } = useToast();
+  const navigate = useNavigate();
+  const { currentUser, logout } = useAuth();
+
+  const handleLogout = () => {
+    logout(); // Call the logout function from auth context
+    navigate("/"); // Redirect to home after logout
+  };
+
 
   // Fetch recruiter's jobs and applications
   useEffect(() => {
@@ -1204,14 +1340,66 @@ const RecruiterJobPostPage = () => {
     return () => unsubscribeAuth();
   }, []);
 
+  // const handleStatusChange = async (
+  //   applicationId: string,
+  //   newStatus: string
+  // ) => {
+  //   try {
+  //     // 1. Update the main application document
+  //     await updateDoc(doc(db, "applications", applicationId), {
+  //       status: newStatus,
+  //       updatedAt: serverTimestamp(),
+  //     });
+  
+  //     // 2. Find the application in local state to get jobId
+  //     const application = applications.find((app) => app.id === applicationId);
+  //     if (!application) throw new Error("Application not found");
+  
+  //     // 3. Update all references in job's applicants subcollection
+  //     const applicantsRef = collection(db, "jobPosts", application.jobId, "applicants");
+  //     const q = query(applicantsRef, where("applicationId", "==", applicationId));
+  //     const querySnapshot = await getDocs(q);
+  
+  //     const updatePromises = querySnapshot.docs.map((docSnapshot) =>
+  //       updateDoc(docSnapshot.ref, {
+  //         status: newStatus,
+  //         updatedAt: serverTimestamp(),
+  //       })
+  //     );
+  
+  //     await Promise.all(updatePromises);
+  
+  //     // 4. Update local state
+  //     setApplications(applications.map((app) =>
+  //       app.id === applicationId ? { ...app, status: newStatus } : app
+  //     ));
+  
+  //     toast({
+  //       title: `Application ${newStatus}`,
+  //       description: `Status updated successfully`,
+  //       variant: newStatus === "approved" ? "default" : "destructive",
+  //     });
+  //   } catch (error) {
+  //     console.error("Error updating application status:", error);
+  //     toast({
+  //       title: "Error",
+  //       description: "Failed to update application status",
+  //       variant: "destructive",
+  //     });
+  //   }
+  // };
+
+
   const handleStatusChange = async (
     applicationId: string,
-    newStatus: "approved" | "rejected"
+    newStatus: string,
+    info: string
   ) => {
     try {
-      // 1. Update the main application document
+      // 1. Update the main application document with status and info
       await updateDoc(doc(db, "applications", applicationId), {
         status: newStatus,
+        info: info,
         updatedAt: serverTimestamp(),
       });
   
@@ -1227,6 +1415,7 @@ const RecruiterJobPostPage = () => {
       const updatePromises = querySnapshot.docs.map((docSnapshot) =>
         updateDoc(docSnapshot.ref, {
           status: newStatus,
+          info: info,
           updatedAt: serverTimestamp(),
         })
       );
@@ -1235,23 +1424,24 @@ const RecruiterJobPostPage = () => {
   
       // 4. Update local state
       setApplications(applications.map((app) =>
-        app.id === applicationId ? { ...app, status: newStatus } : app
+        app.id === applicationId ? { ...app, status: newStatus, info: info } : app
       ));
   
       toast({
         title: `Application ${newStatus}`,
-        description: `Status updated successfully`,
-        variant: newStatus === "approved" ? "default" : "destructive",
+        description: `Status and info updated successfully`,
+        variant: newStatus.toLowerCase() === "rejected" ? "destructive" : "default",
       });
     } catch (error) {
-      console.error("Error updating application status:", error);
+      console.error("Error updating application status and info:", error);
       toast({
         title: "Error",
-        description: "Failed to update application status",
+        description: "Failed to update application status and info",
         variant: "destructive",
       });
     }
   };
+  
 
   const handleDeleteJob = async (jobId: string) => {
     try {
@@ -1302,12 +1492,19 @@ const RecruiterJobPostPage = () => {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between h-16">
             <div className="flex items-center">
-              <Link to="/login">
+              <Link to="/">
                 <Button variant="outline" className="mr-4 bg-slate-200">
                   ← Back
                 </Button>
+                <Button
+                      onClick={handleLogout}
+                      className="border border-red-600 text-red-600 bg-white hover:bg-red-500 hover:text-white transition-all"
+                    >
+                      Logout
+                </Button>
               </Link>
             </div>
+
             <div className="flex items-center">
               <div className="flex-shrink-0 flex items-center">
                 <motion.span

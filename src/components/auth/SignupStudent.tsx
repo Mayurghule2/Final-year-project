@@ -1,5 +1,5 @@
 // src/components/auth/SignupStudent.tsx
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
@@ -46,6 +46,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "../ui/tooltip";
+import { useAuth } from "@/context/AuthContext";
 
 const studentFormSchema = z
   .object({
@@ -109,6 +110,10 @@ const branchCodeMap: Record<string, string> = {
   "Instrumentation Engineering": "IN",
 };
 
+const codeToBranchMap = Object.fromEntries(
+  Object.entries(branchCodeMap).map(([branch, code]) => [code, branch])
+);
+
 const StudentRegistration = ({
   setRegistration,
 }: {
@@ -121,22 +126,11 @@ const StudentRegistration = ({
   const [loading, setLoading] = useState(false);
   const { toast } = useToast();
 
+  const { currentUser } = useAuth();
   const branches = Object.keys(branchCodeMap);
-
   const genders = ["Male", "Female", "Prefer not to say", "Other"];
-
   const semesters = ["1", "2", "3", "4", "5", "6", "7", "8"];
-  const backlogOptions = [
-    "No Backlog",
-    "1",
-    "2",
-    "3",
-    "4",
-    "5",
-    "6",
-    "7",
-    "8",
-  ];
+  const backlogOptions = ["0", "1", "2", "3", "4", "5", "6", "7", "8"];
 
   const form = useForm<z.infer<typeof studentFormSchema>>({
     resolver: zodResolver(studentFormSchema),
@@ -159,6 +153,21 @@ const StudentRegistration = ({
     },
   });
 
+  useEffect(() => {
+    if (currentUser?.type === "A2") {
+      const autoBranch = codeToBranchMap[currentUser.deptCode] || "";
+      if (autoBranch) {
+        form.setValue("branch", autoBranch); // ✅ set branch field
+        form.setValue("branchCode", branchCodeMap[autoBranch]); // ✅ set branchCode too
+      }
+    }
+    if (studentPassword) {
+      form.setValue("password", studentPassword); // Set the password in the form state
+    }
+    if (confirmStudentPassword) {
+      form.setValue("confirmPassword", confirmStudentPassword); // Set the confirmPassword in the form state
+    }
+  }, [studentPassword, confirmStudentPassword, currentUser, form]);
   const handleStudentSubmit = async (data: any) => {
     setLoading(true);
 
@@ -410,6 +419,19 @@ const StudentRegistration = ({
                           type="date"
                           {...field}
                           className="text-xs sm:text-sm h-8 sm:h-9"
+                          onChange={(e) => {
+                            field.onChange(e); // keep normal change behavior
+
+                            const selectedDate = e.target.value; // e.g. "2000-05-20"
+                            if (selectedDate) {
+                              const [year, month, day] =
+                                selectedDate.split("-");
+                              const passwordFromDob = `${day}${month}${year}`;
+
+                              form.setValue("password", passwordFromDob);
+                              form.setValue("confirmPassword", passwordFromDob);
+                            }
+                          }}
                         />
                       </FormControl>
                       <FormMessage className="text-xs" />
@@ -489,9 +511,7 @@ const StudentRegistration = ({
                   name="cgpa"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel className="text-xs sm:text-sm">
-                        CGPA
-                      </FormLabel>
+                      <FormLabel className="text-xs sm:text-sm">CGPA</FormLabel>
                       <FormControl>
                         <Input
                           type="number"
@@ -511,37 +531,44 @@ const StudentRegistration = ({
                 <FormField
                   control={form.control}
                   name="branch"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel className="text-xs sm:text-sm">
-                        Branch
-                      </FormLabel>
-                      <Select
-                        onValueChange={(selected) => {
-                          field.onChange(selected);
-                          form.setValue(
-                            "branchCode",
-                            branchCodeMap[selected]
-                          );
-                        }}
-                        defaultValue={field.value}
-                      >
-                        <FormControl>
-                          <SelectTrigger className="text-xs sm:text-sm h-8 sm:h-9">
-                            <SelectValue placeholder="Select branch" />
-                          </SelectTrigger>
-                        </FormControl>
-                        <SelectContent className="text-xs sm:text-sm max-h-60 overflow-y-auto">
-                          {branches.map((branch) => (
-                            <SelectItem key={branch} value={branch}>
-                              {branch}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                      <FormMessage className="text-xs" />
-                    </FormItem>
-                  )}
+                  render={({ field }) => {
+                    const notLeadAdmin = currentUser.type === "A2";
+                    const autoBranch =
+                      codeToBranchMap[currentUser.deptCode] || "";
+
+                    return (
+                      <FormItem>
+                        <FormLabel className="text-xs sm:text-sm">
+                          Branch
+                        </FormLabel>
+                        <Select
+                          onValueChange={(selected) => {
+                            field.onChange(selected);
+                            form.setValue(
+                              "branchCode",
+                              branchCodeMap[selected]
+                            );
+                          }}
+                          value={notLeadAdmin ? autoBranch : field.value}
+                          disabled={notLeadAdmin}
+                        >
+                          <FormControl>
+                            <SelectTrigger className="text-xs sm:text-sm h-8 sm:h-9">
+                              <SelectValue placeholder="Select branch" />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent className="text-xs sm:text-sm max-h-60 overflow-y-auto">
+                            {branches.map((branch) => (
+                              <SelectItem key={branch} value={branch}>
+                                {branch}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        <FormMessage className="text-xs" />
+                      </FormItem>
+                    );
+                  }}
                 />
 
                 <FormField
@@ -629,6 +656,11 @@ const StudentRegistration = ({
                             placeholder="********"
                             {...field}
                             className="text-xs sm:text-sm h-8 sm:h-9 pr-8"
+                            value={studentPassword} // Bind to local state
+                            onChange={(e) => {
+                              setStudentPassword(e.target.value); // Update local state
+                              field.onChange(e.target.value); // Update form state
+                            }}
                           />
                         </FormControl>
                         <button
@@ -659,12 +691,15 @@ const StudentRegistration = ({
                       <div className="relative">
                         <FormControl>
                           <Input
-                            type={
-                              showConfirmPassword ? "text" : "password"
-                            }
+                            type={showConfirmPassword ? "text" : "password"}
                             placeholder="Confirm your password"
                             {...field}
                             className="text-xs sm:text-sm h-8 sm:h-9 pr-8"
+                            value={confirmStudentPassword} // Bind to local state
+                            onChange={(e) => {
+                              setConfirmStudentPassword(e.target.value); // Update local state
+                              field.onChange(e.target.value); // Update form state
+                            }}
                           />
                         </FormControl>
                         <button
@@ -713,6 +748,7 @@ const SignupStudent = () => {
   const [showRegistration, setShowRegistration] = useState(false);
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
+  const { currentUser } = useAuth();
 
   const handleRegisterClick = () => {
     setShowRegistration(true);
@@ -754,7 +790,6 @@ const SignupStudent = () => {
         throw new Error("Max 100 records allowed per upload.");
       }
 
-      // 2) Validate every row first
       const mandatory = [
         "firstName",
         "lastName",
@@ -766,10 +801,13 @@ const SignupStudent = () => {
         "tenthPercentage",
         "twelfthPercentage",
         "cgpa",
-        "branch",
         "semester",
         "backlogs",
       ];
+      if (currentUser?.type === "A1") {
+        mandatory.push("branch");
+      }
+
       for (let idx = 0; idx < rows.length; idx++) {
         const row = rows[idx];
         const missing = mandatory.filter(
@@ -786,10 +824,8 @@ const SignupStudent = () => {
         }
 
         // Branch validity check
-        if (!branchCodeMap[row.branch]) {
-          throw new Error(
-            `Row ${idx + 2}: invalid branch "${row.branch}"`
-          );
+        if (currentUser?.type === "A1" && !branchCodeMap[row.branch]) {
+          throw new Error(`Row ${idx + 2}: invalid branch "${row.branch}"`);
         }
 
         // Check if email already registered in Auth
@@ -829,19 +865,27 @@ const SignupStudent = () => {
         );
 
         // 3b) Write Firestore doc
+        let branch = r.branch.trim();
+        let branchCode = branchCodeMap[branch];
+
+        if (currentUser.type === "A2") {
+          branchCode = currentUser.deptCode;
+          branch = codeToBranchMap[branchCode] || branch; // fallback to existing if not found
+        }
+
         await setDoc(doc(db, "students", userCred.user.uid), {
-          firstName: r.firstName.trim(),
-          lastName: r.lastName.trim(),
-          gender: r.gender.trim(),
-          registrationNo: r.registrationNo.trim(),
+          firstName: String(r.firstName).trim(),
+          lastName: String(r.lastName).trim(),
+          gender: String(r.gender).trim(),
+          registrationNo: String(r.registrationNo).trim(),
           phone: String(r.phone).trim(),
-          email: r.email.trim(),
-          dob: dobSaved.trim(),
+          email: String(r.email).trim(),
+          dob: String(dobSaved).trim(),
           tenthPercentage: Number(r.tenthPercentage),
           twelfthPercentage: Number(r.twelfthPercentage),
           cgpa: Number(r.cgpa),
-          branch: r.branch.trim(),
-          branchCode: branchCodeMap[r.branch.trim()],
+          branch: branch,
+          branchCode: branchCode,
           semester: String(r.semester).trim(),
           backlogs: Number(r.backlogs),
           createdAt: Timestamp.now(),
@@ -928,15 +972,13 @@ const SignupStudent = () => {
                               <li>semester</li>
                               <li>backlogs</li>
                             </ul>
-                            The fields are case-sensitive and must be
-                            written exactly as specified.
+                            The fields are case-sensitive and must be written
+                            exactly as specified.
                           </li>
                           <li>Acceptable file: .csv or .xlsx</li>
                           <li>Max 100 records per upload</li>
                           <li>DOB format: DD-MM-YYYY</li>
-                          <li>
-                            Email must not already exist in the system
-                          </li>
+                          <li>Email must not already exist in the system</li>
                           <li className="flex flex-wrap space-x-4">
                             <span>Max file size: 10MB</span>
                             <span>File encoding: UTF-8</span>
@@ -965,8 +1007,7 @@ const SignupStudent = () => {
                       Upload Bulk Data
                     </h3>
                     <p className="mt-4 text-gray-600 text-sm sm:text-base">
-                      Upload an Excel or CSV file containing multiple
-                      students.
+                      Upload an Excel or CSV file containing multiple students.
                       <br />
                       Bulk uploads may take some time to process. Click to
                       upload.
@@ -990,8 +1031,7 @@ const SignupStudent = () => {
                       Register Individual Student
                     </h3>
                     <p className="mt-4 text-gray-600 text-sm sm:text-base">
-                      Add a single student's details manually into the
-                      system.
+                      Add a single student's details manually into the system.
                       <br />
                       Quick and simple one-by-one registration.
                     </p>
