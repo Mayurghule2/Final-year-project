@@ -130,7 +130,7 @@ const StudentRegistration = ({
   const branches = Object.keys(branchCodeMap);
   const genders = ["Male", "Female", "Prefer not to say", "Other"];
   const semesters = ["1", "2", "3", "4", "5", "6", "7", "8"];
-  const backlogOptions = ["No Backlog", "1", "2", "3", "4", "5", "6", "7", "8"];
+  const backlogOptions = ["0", "1", "2", "3", "4", "5", "6", "7", "8"];
 
   const form = useForm<z.infer<typeof studentFormSchema>>({
     resolver: zodResolver(studentFormSchema),

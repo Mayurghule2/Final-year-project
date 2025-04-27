@@ -1167,6 +1167,7 @@ import {
   AlertCircle,
   Clock as PendingIcon,
   XCircle,
+  MessageSquare,
 } from "lucide-react";
 import { useState, useEffect, useMemo } from "react";
 import { Button } from "@/components/ui/button";
@@ -1530,7 +1531,7 @@ const JobListingsPage = () => {
   };
 
   const getStatusBadge = (status: string) => {
-    switch (status) {
+    switch (status.toLowerCase()) {
       case "approved":
         return (
           <Badge className="bg-green-100 text-green-800 text-xs sm:text-sm">
@@ -1545,11 +1546,18 @@ const JobListingsPage = () => {
             Rejected
           </Badge>
         );
-      default:
+        case "rejected":
         return (
           <Badge className="bg-yellow-100 text-yellow-800 text-xs sm:text-sm">
             <PendingIcon className="h-3 w-3 sm:h-4 sm:w-4 mr-1" />
             Pending
+          </Badge>
+        );
+      default:
+        return (
+          <Badge className="bg-blue-100 text-blue-800 text-xs sm:text-sm">
+            <BookOpen className="h-3 w-3 sm:h-4 sm:w-4 mr-1" />
+            {status}
           </Badge>
         );
     }
@@ -2108,6 +2116,17 @@ const JobListingsPage = () => {
                                   {application.jobDescription}
                                 </p>
                               </div>
+
+                              
+                              <div className="bg-gray-50 p-3 sm:p-4 rounded-lg mb-4 sm:mb-6">
+                                    <h4 className="font-medium text-sm sm:text-base text-gray-800 mb-2 flex items-center">
+                                      <MessageSquare className="h-4 w-4 sm:h-5 sm:w-5 mr-2 text-blue-500" />
+                                      Comment
+                                    </h4>
+                                    <p className="text-xs sm:text-sm text-gray-600">
+                                      {application.info}
+                                    </p>
+                                  </div>
 
                               <div className="bg-gray-50 p-3 sm:p-4 rounded-lg">
                                 <h4 className="font-medium text-sm sm:text-base text-gray-800 mb-2">

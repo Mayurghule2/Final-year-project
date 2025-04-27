@@ -20,8 +20,21 @@ const Navbar = () => {
     { name: "Features", path: "/#features" },
     { name: "FAQs", path: "/faqs" },
     { name: "Contact Us", path: "/contactus" },
-    { name: "My Profile", path: "/joblistingspage", hideElement: !(currentUser && currentUser?.role === "student") },
-    { name: "Admin Dashboard", path: "/dashboard", hideElement: !(currentUser && currentUser?.role === "admin") },
+    { 
+      name: "My Profile", 
+      path: "/joblistingspage", 
+      hideElement: !(currentUser && currentUser?.role === "student") 
+    },
+    { 
+      name: "Admin Dashboard", 
+      path: "/dashboard", 
+      hideElement: !(currentUser && currentUser?.role === "admin") 
+    },
+    { 
+      name: "Recruiter Dashboard", 
+      path: "/recruiterjobpostpage", 
+      hideElement: !(currentUser && currentUser?.role === "recruiter") 
+    },
   ];
 
   useEffect(() => {
