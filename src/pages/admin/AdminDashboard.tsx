@@ -41,7 +41,7 @@ import {
   doc,
   deleteDoc,
 } from "../../backend/FirebaseConfig";
-import ViewStudents from "./viewStudents";
+import ViewStudents from "./ViewStudents";
 import { useAuth } from "@/context/AuthContext";
 import ViewAdmins from "./ViewAdmins";
 import ViewRecruiters from "./ViewRecruiters";
