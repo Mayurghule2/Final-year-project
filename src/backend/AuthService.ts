@@ -16,10 +16,13 @@ export interface AuthResponse {
   error: string | null;
 }
 
-export interface UserData {
+interface UserData {
   uid: string;
   email: string;
   role: string;
+  type: string;
+  username: string; 
+  deptCode: string;
   status: string;
 }
 
@@ -59,6 +62,9 @@ export const AuthService = {
             email: firebaseUser.email || email,
             role: collectionName,
             status: doc.data().status || "active",
+            type: doc.data().type || "",
+            username: doc.data().username || "",
+            deptCode: doc.data().deptCode || "",
             ...doc.data(), // Include all user data from the document
           };
           break;

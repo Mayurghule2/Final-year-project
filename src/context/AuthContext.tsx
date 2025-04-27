@@ -5,6 +5,10 @@ interface User {
   uid: string;
   email: string;
   role: string;
+  type: string;
+  username: string; 
+  deptCode: string;
+  status: string;
   // Add any other user properties you need
 }
 
